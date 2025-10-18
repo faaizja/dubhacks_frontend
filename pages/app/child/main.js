@@ -28,9 +28,7 @@ export default function Main() {
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-4xl border-4 border-black">
               {userData.avatar}
             </div>
-            <h2 className="text-2xl ITC-demi text-gray-800">
-              {userData.name}
-            </h2>
+            <h2 className="text-2xl ITC-demi text-gray-800">{userData.name}</h2>
           </div>
         </div>
 
@@ -129,7 +127,12 @@ export default function Main() {
             src={WalletButton}
           />
         </button>
-        <button className="absolute border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group bottom-2 right-2 w-max h-max">
+        <button
+          onClick={() => {
+            router.push("/app/child/game/lobby");
+          }}
+          className="absolute border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group bottom-2 right-2 w-max h-max"
+        >
           <Image
             className="group-hover:p-1 transition-all duration-500 ease-in-out"
             width={"236"}
