@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+html {
+  background-color: #D9E8D6; /* Light mode */
+}
+
+html.dark {
+  background-color: #D9E8D6; /* Dark mode */
+}
+
+
+body {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+
+@font-face {
+  font-family: 'ITC Kabel';
+  src: url('/fonts/ITCKabelStdBold.TTF') format('truetype');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ITC Kabel';
+  src: url('/fonts/ITCKabelStdBook.TTF') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+.ITC-book {
+  font-family: 'ITC Kabel', sans-serif;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'ITC Kabel';
+  src: url('/fonts/ITCKabelStdDemi.TTF') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+.ITC-demi {
+  font-family: 'ITC Kabel', sans-serif;
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'ITC Kabel';
+  src: url('/fonts/ITCKabelStdMedium.TTF') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+.ITC-medium {
+  font-family: 'ITC Kabel', sans-serif;
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: 'ITC Kabel';
+  src: url('/fonts/ITCKabelStdBold.TTF') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+.ITC-bold {
+  font-family: 'ITC Kabel', sans-serif;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'ITC Kabel';
+  src: url('/fonts/ITCKabelStdUltra.TTF') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+}
+
+.ITC-ultra {
+  font-family: 'ITC Kabel', sans-serif;
+  font-weight: 900;
+}
