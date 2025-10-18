@@ -1,48 +1,105 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
 export default function Game() {
+  const [socket, setSocket] = useState(null);
+  const [players, setPlayers] = useState({}); // { socketId: { x, y, color } }
+
   useEffect(() => {
-    const SOCKET_URL = "";
-
-    console.log("🔌 Attempting to connect to:", SOCKET_URL);
-
-    const socket = io(SOCKET_URL, {
+    const SOCKET_URL =
+      "https://norris-nondisguised-behavioristically.ngrok-free.dev";
+    const socketIo = io(SOCKET_URL, {
       transports: ["polling", "websocket"],
-      extraHeaders: {
-        "ngrok-skip-browser-warning": "true", // Add this!
-      },
+      extraHeaders: { "ngrok-skip-browser-warning": "true" },
     });
 
-    socket.on("connect", () => {
-      console.log("✅ Connected as:", socket.id);
-      socket.emit("joinLobby", "myLobby123");
+    setSocket(socketIo);
+
+    socketIo.on("connect", () => console.log("✅ Connected as:", socketIo.id));
+
+    // Initial load of current players
+    socketIo.on("currentPlayers", (currentPlayers) =>
+      setPlayers(currentPlayers)
+    );
+
+    // New player joined
+    socketIo.on("newPlayer", (player) =>
+      setPlayers((prev) => ({
+        ...prev,
+        [player.id]: { x: player.x, y: player.y, color: player.color },
+      }))
+    );
+
+    // Player moved
+    socketIo.on("playerMoved", ({ id, x, y }) => {
+      setPlayers((prev) => ({ ...prev, [id]: { ...prev[id], x, y } }));
     });
 
-    socket.on("lobbyUpdate", (msg) => {
-      console.log("📨 Lobby update:", msg);
+    // Player disconnected
+    socketIo.on("playerDisconnected", (id) => {
+      setPlayers((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
     });
 
-    socket.on("connect_error", (err) => {
-      console.error("❌ Connection error:", err.message);
-      console.error("Full error:", err);
-    });
-
-    socket.on("disconnect", (reason) => {
-      console.log("🔌 Disconnected:", reason);
-    });
-
-    return () => {
-      console.log("🧹 Cleaning up socket connection");
-      socket.disconnect();
-    };
+    return () => socketIo.disconnect();
   }, []);
 
+  // Handle WASD movement
+  useEffect(() => {
+    if (!socket) return;
+
+    const speed = 5;
+
+    const handleKeyDown = (e) => {
+      const movement = { dx: 0, dy: 0 };
+      if (e.key === "w") movement.dy = -speed;
+      if (e.key === "s") movement.dy = speed;
+      if (e.key === "a") movement.dx = -speed;
+      if (e.key === "d") movement.dx = speed;
+
+      if (movement.dx !== 0 || movement.dy !== 0) {
+        socket.emit("move", movement);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [socket]);
+
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Socket.IO Test</h1>
-      <p>Check the browser console for connection status</p>
+    <div
+      style={{
+        position: "relative",
+        width: "800px",
+        height: "600px",
+        border: "2px solid black",
+        margin: "20px auto",
+      }}
+    >
+      {Object.entries(players).map(([id, player]) => (
+        <div
+          key={id}
+          style={{
+            position: "absolute",
+            left: player.x,
+            top: player.y,
+            width: "40px",
+            height: "40px",
+            backgroundColor: player.color,
+            borderRadius: "50%",
+            textAlign: "center",
+            lineHeight: "40px",
+            color: "#fff",
+            fontWeight: "bold",
+          }}
+        >
+          {id === socket?.id ? "ME" : "P"}
+        </div>
+      ))}
     </div>
   );
 }
