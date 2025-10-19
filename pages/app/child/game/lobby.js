@@ -1,65 +1,79 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { supabase } from "../../../../utils/supabaseClient.js";
 
 export default function LobbyPage() {
-  const router = useRouter();
-  const [userId, setUserId] = useState("63046610-4264-4ace-a20b-d60633443c9e");
+  const [userId, setUserId] = useState("a87ed579-94aa-4d9f-ad5b-6a4e662ef965");
   const [myName, setMyName] = useState("");
   const [currentLobby, setCurrentLobby] = useState(null);
   const [lobbies, setLobbies] = useState([]);
 
-  const API_BASE = "http://localhost:3004";
-
-  // Fetch lobbies from backend
+  // Fetch all lobbies with user counts
   const fetchLobbies = async () => {
     try {
-      const res = await fetch(`${API_BASE}/lobby/all`);
-      const data = await res.json();
-      console.log(data);
-      setLobbies(data.lobbies);
+      const { data, error } = await supabase.from("lobbies").select(`
+    id,
+    lobby_members!fk_lobby (
+      user_id
+    )
+  `);
+
+      if (error) throw error;
+
+      const formattedLobbies = data.map((lobby) => ({
+        ...lobby,
+        user_ids: lobby.lobby_members.map((m) => m.user_id),
+        user_count: lobby.lobby_members.length,
+      }));
+      console.log(formattedLobbies);
+      setLobbies(formattedLobbies);
     } catch (err) {
-      console.error(err);
-      console.log("❌ Failed to fetch lobbies");
+      console.error("❌ Failed to fetch lobbies", err);
     }
   };
 
-  // Poll every 2 seconds
+  // Poll every 1 second
   useEffect(() => {
     fetchLobbies(); // initial fetch
-    const interval = setInterval(fetchLobbies, 2000); // every 2s
-    return () => clearInterval(interval); // cleanup on unmount
+    const interval = setInterval(fetchLobbies, 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Create lobby
+  // Create a lobby
   const createLobby = async () => {
-    if (!myName.trim()) return alert("Set your name first!");
     try {
-      const res = await fetch(`${API_BASE}/lobby/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: myName }),
-      });
-      const lobby = await res.json();
-      setCurrentLobby(lobby);
-      console.log(`✅ Lobby created: ${lobby.id}`);
+      // Insert a lobby without any name
+      const { data: lobbyData, error } = await supabase
+        .from("lobbies")
+        .insert([{}]) // <- must provide an array with an object
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add creator as first member
+      await supabase
+        .from("lobby_members")
+        .insert([{ lobby_id: lobbyData.id, user_id: userId }]);
+
+      setCurrentLobby(lobbyData);
+      console.log(`✅ Lobby created: ${lobbyData.id}`);
+      fetchLobbies();
     } catch (err) {
-      console.error(err);
-      console.log("❌ Failed to create lobby");
+      console.error("❌ Failed to create lobby", err);
     }
   };
 
   // Join lobby
   const joinLobby = async (lobbyId) => {
     try {
-      await fetch(`${API_BASE}/lobby/${lobbyId}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
+      await supabase
+        .from("lobby_members")
+        .insert([{ lobby_id: lobbyId, user_id: userId }]);
       console.log(`✅ Joined lobby ${lobbyId}`);
+      fetchLobbies();
     } catch (err) {
-      console.error(err);
+      console.error("❌ Failed to join lobby", err);
       alert("Failed to join lobby");
     }
   };
@@ -67,15 +81,16 @@ export default function LobbyPage() {
   // Leave lobby
   const leaveLobby = async (lobbyId) => {
     try {
-      await fetch(`${API_BASE}/lobby/${lobbyId}/leave`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
+      await supabase
+        .from("lobby_members")
+        .delete()
+        .eq("lobby_id", lobbyId)
+        .eq("user_id", userId);
+
       console.log(`❌ Left lobby ${lobbyId}`);
-      fetchLobbies(); // refresh the lobby list
+      fetchLobbies();
     } catch (err) {
-      console.error(err);
+      console.error("❌ Failed to leave lobby", err);
       alert("Failed to leave lobby");
     }
   };
@@ -95,7 +110,7 @@ export default function LobbyPage() {
         const isMember = lobby.user_ids?.includes(userId);
         return (
           <div key={lobby.id}>
-            🎮 Lobby {lobby.id} ({lobby.user_count}/4)
+            🎮 Lobby {lobby.name} ({lobby.user_count}/4)
             {!isMember && (
               <button onClick={() => joinLobby(lobby.id)}>Join</button>
             )}
