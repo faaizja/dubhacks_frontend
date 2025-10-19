@@ -4,7 +4,6 @@ import ChoresButton from "../../../assets/ChoresButton.png";
 import WalletButton from "../../../assets/WalletButton.png";
 import { useRouter } from "next/navigation";
 
-// Import new components
 import ProfileHeader from "../../../components/sidebar/ProfileHeader";
 import BalanceCard from "../../../components/sidebar/BalanceCard";
 import ParentsCard from "../../../components/sidebar/ParentsCard";

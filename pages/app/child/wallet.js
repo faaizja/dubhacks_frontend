@@ -6,6 +6,11 @@ import WalletButton from "../../../assets/WalletButton.png";
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
 
+import ProfileHeader from "../../../components/sidebar/ProfileHeader";
+import BalanceCard from "../../../components/sidebar/BalanceCard";
+import ParentsCard from "../../../components/sidebar/ParentsCard";
+import StatsCard from "../../../components/sidebar/StatsCard";
+
 export default function Wallet() {
     const router = useRouter();
     // Mock data - replace with actual user data
@@ -121,61 +126,14 @@ export default function Wallet() {
 
     return (
       <div className="flex h-screen w-screen">
-        {/* Left Sidebar */}
-        <div className="w-1/4 bg-[#BDCCBA] h-full p-6 flex flex-col gap-6 overflow-y-auto">
-          {/* Profile Header */}
-          <div className="bg-white p-6 border-4 border-black">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-4xl border-4 border-black">
-                {userData.avatar}
-              </div>
-              <h2 className="text-2xl ITC-demi text-gray-800">{userData.name}</h2>
-            </div>
-          </div>
-  
-          {/* Balance Card */}
-          <div className="bg-white p-6 border-4 border-black">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-600">
-                My Balance
-              </span>
-              <span className="text-2xl">💰</span>
-            </div>
-            <p className="text-3xl ITC-demi text-green-600">
-              ${userData.balance.toFixed(2)}
-            </p>
-          </div>
 
-          {/* Tokens Card */}
-          <div className="bg-white p-6 border-4 border-black">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-600">
-                Game Tokens
-              </span>
-              <span className="text-2xl">🪙</span>
-            </div>
-            <p className="text-3xl ITC-demi text-yellow-600">
-              {userData.tokens}
-            </p>
-          </div>
-  
-          {/* Parents Card */}
-          <div className="bg-white p-6 border-4 border-black">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">👨‍👩‍👦</span>
-              <h3 className="text-lg ITC-demi text-gray-800">My Parents</h3>
-            </div>
-            <div className="flex flex-col gap-2">
-              {userData.parents.map((parent, idx) => (
-                <div
-                  key={idx}
-                  className="bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700"
-                >
-                  {parent}
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Left Sidebar */}
+      <div className="w-1/4 bg-[#BDCCBA] h-full p-6 flex flex-col gap-6 overflow-y-auto">
+        <ProfileHeader name={userData.name} avatar={userData.avatar} />
+        <BalanceCard balance={userData.balance} />
+        <ParentsCard parents={userData.parents} />
+        <StatsCard stats={userData.stats} />
+      </div>
   
           {/* Stats Card */}
           <div className="bg-white p-6 border-4 border-black">
