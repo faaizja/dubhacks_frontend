@@ -5,10 +5,8 @@ import ProfileButton from "../../../assets/ProfileButton.png";
 import WalletButton from "../../../assets/WalletButton.png";
 import { useRouter } from "next/navigation";
 
-
 export default function Main() {
   const router = useRouter();
-  // Mock data - replace with actual user data
   const userData = {
     name: "Alex",
     avatar: "👦", // You can replace with an actual image
@@ -40,7 +38,7 @@ export default function Main() {
         </div>
 
         {/* Balance Card */}
-        <div className="bg-white  p-6 border-4 border-black ">
+        <div className="bg-white p-6 border-4 border-black ">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-gray-600">
               My Balance
@@ -112,7 +110,7 @@ export default function Main() {
       </div>
 
       {/* Right Side - Button Area */}
-      <div className="w-3/4 relative h-full">
+      <div className="w-3/4 fade-in relative h-full">
         <button className="absolute border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group top-2 left-2 w-max h-max">
           <Image
             className="group-hover:p-1 transition-all duration-500 ease-in-out"
