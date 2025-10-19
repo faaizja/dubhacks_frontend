@@ -82,3 +82,81 @@ body {
   font-family: 'ITC Kabel', sans-serif;
   font-weight: 900;
 }
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Variations with different durations */
+.fade-in-slow {
+  animation: fadeIn 1s ease-in;
+}
+
+.fade-in-fast {
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Fade-in with slide up */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Fade-in with slide down */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-down {
+  animation: fadeInDown 0.6s ease-out;
+}
+
+/* Fade-in with scale */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fade-in-scale {
+  animation: fadeInScale 0.5s ease-out;
+}
+
+/* Staggered fade-in for multiple elements */
+.fade-in-stagger:nth-child(1) { animation-delay: 0s; }
+.fade-in-stagger:nth-child(2) { animation-delay: 0.1s; }
+.fade-in-stagger:nth-child(3) { animation-delay: 0.2s; }
+.fade-in-stagger:nth-child(4) { animation-delay: 0.3s; }
+.fade-in-stagger:nth-child(5) { animation-delay: 0.4s; }
