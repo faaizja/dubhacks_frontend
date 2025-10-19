@@ -1,4 +1,4 @@
-export default function LobbyCard({ lobby, onClick }) {
+export default function LobbyCard({ lobby, onClick, lobbyNum }) {
   const getStatusConfig = (status) => {
     switch (status) {
       case "open":
@@ -42,7 +42,7 @@ export default function LobbyCard({ lobby, onClick }) {
     >
       <div className="border-2 w-full flex flex-col p-4 h-full border-black relative">
         <p className={`text-lg ITC-demi ${config.opacity}`}>
-          Lobby #{lobby.id}
+          Lobby #{lobbyNum}
         </p>
         <p className={`text-2xl mt-6 ITC-medium ${config.opacity}`}>
           Click to join lobby
