@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../utils/supabaseClient.js";
+import { useRouter } from "next/navigation.js";
 
 export default function LobbyPage() {
+  const router = useRouter();
   const [userId, setUserId] = useState("a87ed579-94aa-4d9f-ad5b-6a4e662ef965");
   const [myName, setMyName] = useState("");
   const [currentLobby, setCurrentLobby] = useState(null);
@@ -71,6 +73,7 @@ export default function LobbyPage() {
         .from("lobby_members")
         .insert([{ lobby_id: lobbyId, user_id: userId }]);
       console.log(`✅ Joined lobby ${lobbyId}`);
+      router.push(`/app/child/game/${lobbyId}`);
       fetchLobbies();
     } catch (err) {
       console.error("❌ Failed to join lobby", err);

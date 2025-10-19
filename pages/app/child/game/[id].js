@@ -20,7 +20,7 @@ export default function WaitingRoom() {
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-4xl border-4 border-black">
             👦
           </div>
-          <h2 className="text-2xl font-bold">{userName}</h2>
+          <h2 className="text-2xl font-bold">harjot</h2>
         </div>
       </div>
 
