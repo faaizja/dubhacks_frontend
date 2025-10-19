@@ -38,7 +38,10 @@ export default function WaitingRoom() {
     socket.on("connect", () => {
       console.log("✅ Connected", socket.id);
       socket.emit("join_lobby", { lobbyId, userName });
+      socket.emit("get_lobby", lobbyId); // <- fetch current lobby state
     });
+
+    socket.on("lobby_data", (lobby) => setPlayers(lobby.users)); // <- add this
 
     socket.on("lobby_joined", (lobby) => setPlayers(lobby.users));
 
@@ -63,6 +66,7 @@ export default function WaitingRoom() {
       socket.disconnect();
     };
   }, [lobbyId, userName]);
+
 
   const handleSelectCharacter = (char) => {
     if (char.selected) return;
