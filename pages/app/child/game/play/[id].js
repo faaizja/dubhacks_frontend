@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { io } from "socket.io-client";
-import GameBoard from "assets/GameBoard.png";
+import GameBoard from "../../../../../assets/GameBoard.png";
 
 // Board path
 const BOARD_PATH = [

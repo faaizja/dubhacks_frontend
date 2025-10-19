@@ -1,12 +1,18 @@
 import { useRouter } from "next/navigation";
 import { Button } from "../../../../components/buttons/Button";
 import LobbyCard from "../../../../components/LobbyCard";
+import { useState, useEffect } from "react";
+import io from "socket.io-client";
 
 export default function Lobby() {
   const router = useRouter();
+  const [lobbies, setLobbies] = useState([]);
+  const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+
   const userData = {
     name: "Alex",
-    avatar: "👦", // You can replace with an actual image
+    avatar: "👦",
     balance: 125.5,
     parents: ["Mom", "Dad"],
     stats: {
@@ -16,21 +22,80 @@ export default function Lobby() {
     },
   };
 
-  const lobbies = [
-    { id: 1, status: "open", playerCount: 1 },
-    { id: 2, status: "full", playerCount: 6 },
-    { id: 3, status: "ongoing", playerCount: 4 },
-    { id: 4, status: "ongoing", playerCount: 6 },
-    { id: 5, status: "open", playerCount: 3 },
-    { id: 6, status: "full", playerCount: 6 },
-  ];
+  // Initialize Socket.IO connection
+  useEffect(() => {
+    const socketInstance = io("http://localhost:3004");
+
+    socketInstance.on("connect", () => {
+      console.log("✅ Connected to server:", socketInstance.id);
+      setIsConnected(true);
+      // Request lobbies when connected
+      socketInstance.emit("get_lobbies");
+    });
+
+    socketInstance.on("disconnect", () => {
+      console.log("❌ Disconnected from server");
+      setIsConnected(false);
+    });
+
+    socketInstance.on("lobbies_list", (lobbiesList) => {
+      console.log("📋 Received lobbies:", lobbiesList);
+      setLobbies(lobbiesList);
+    });
+
+    socketInstance.on("lobbies_updated", (lobbiesList) => {
+      console.log("🔄 Lobbies updated:", lobbiesList);
+      setLobbies(lobbiesList);
+    });
+
+    socketInstance.on("error", (error) => {
+      console.error("❌ Socket error:", error);
+    });
+
+    setSocket(socketInstance);
+
+    // Cleanup on unmount
+    return () => {
+      socketInstance.disconnect();
+    };
+  }, []);
 
   const handleLobbyClick = (lobby) => {
-    if (lobby.status === "open") {
-      console.log(`Joining lobby #${lobby.id}`);
-      router.push(`/app/child/game/play/${lobby.id}`);
+    if (!socket) return;
+
+    // Check if lobby is full
+    if (lobby.userCount >= 4) {
+      alert("This lobby is full!");
+      return;
     }
+
+    console.log(`Joining lobby ${lobby.id}`);
+
+    // Join the lobby via Socket.IO
+    socket.emit("join_lobby", {
+      lobbyId: lobby.id,
+      userName: userData.name,
+    });
+
+    // Listen for successful join
+    socket.once("lobby_joined", (joinedLobby) => {
+      console.log("✅ Successfully joined lobby:", joinedLobby);
+      router.push(`/app/child/game/${lobby.id}`);
+    });
   };
+
+  const handleCreateLobby = () => {
+    if (!socket) return;
+
+    console.log("Creating new lobby...");
+    socket.emit("create_lobby", userData.name);
+
+    socket.once("lobby_created", (lobby) => {
+      console.log("✅ Lobby created:", lobby);
+      router.push(`/app/child/game/${lobby.id}`);
+    });
+  };
+
   return (
     <div className="flex h-screen w-screen">
       {/* Left Sidebar */}
@@ -116,29 +181,67 @@ export default function Lobby() {
           </div>
         </div>
       </div>
-      {/* Right Side - Button Area */}
+
+      {/* Right Side - Lobbies Area */}
       <div className="w-3/4 fade-in relative h-full p-4">
-        <Button
-          onClick={() => {
-            router.push("/app/child/main");
-          }}
-          variant="green"
-        >
-          Back
-        </Button>
+        <div className="flex items-center justify-between">
+          <Button
+            onClick={() => {
+              router.push("/app/child/main");
+            }}
+            variant="green"
+          >
+            Back
+          </Button>
+
+          <div className="flex items-center gap-4">
+            {/* Connection Status */}
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  isConnected ? "bg-green-500" : "bg-red-500"
+                }`}
+              ></div>
+              <span className="text-sm font-medium">
+                {isConnected ? "Connected" : "Disconnected"}
+              </span>
+            </div>
+
+            {/* Create Lobby Button */}
+            <Button onClick={handleCreateLobby} variant="primary">
+              + Create Lobby
+            </Button>
+          </div>
+        </div>
+
         <p className="mt-6 ITC-bold text-2xl px-4">Game Lobbies</p>
         <p className="ITC-medium text-lg px-4 w-1/2">
           Select an open lobby and play with others to earn money and purchase
           new chores to complete.
         </p>
+
         <div className="flex flex-wrap gap-6 px-4 mt-4">
-          {lobbies.map((lobby) => (
-            <LobbyCard
-              key={lobby.id}
-              lobby={lobby}
-              onClick={() => handleLobbyClick(lobby)}
-            />
-          ))}
+          {lobbies.length === 0 ? (
+            <div className="w-full text-center py-12">
+              <p className="text-xl text-gray-500 ITC-medium">
+                No lobbies available. Create one to get started! 🎮
+              </p>
+            </div>
+          ) : (
+            lobbies.map((lobby) => (
+              <LobbyCard
+                key={lobby.id}
+                lobby={{
+                  id: lobby.id,
+                  status: lobby.userCount >= 4 ? "full" : "open",
+                  players: lobby.userCount,
+                  maxPlayers: 4,
+                  users: lobby.users || [],
+                }}
+                onClick={() => handleLobbyClick(lobby)}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>
