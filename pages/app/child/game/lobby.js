@@ -1,109 +1,135 @@
-import { useRouter } from "next/navigation";
-import { Button } from "../../../../components/buttons/Button";
-import LobbyCard from "../../../../components/LobbyCard";
+"use client";
+
 import { useState, useEffect } from "react";
-import { socket } from "../../../../utils/socket"; // <-- Import shared socket
+import { useRouter } from "next/navigation";
+import { getSocket } from "../../../../utils/socket";
+import LobbyCard from "../../../../components/LobbyCard";
+import { Button } from "../../../../components/buttons/Button";
 
 export default function Lobby() {
   const router = useRouter();
-  const [lobbies, setLobbies] = useState([]);
+  const socket = getSocket();
+
   const [isConnected, setIsConnected] = useState(socket.connected);
+  const [lobbies, setLobbies] = useState([]);
+  const [currentLobbyId, setCurrentLobbyId] = useState(null);
 
   const userData = {
-    name: "Alex",
+    name: "Alex", // You can replace with dynamic input
     avatar: "👦",
     balance: 125.5,
     parents: ["Mom", "Dad"],
-    stats: {
-      choresCompleted: 47,
-      gamesPlayed: 23,
-      streak: 5,
-    },
+    stats: { choresCompleted: 47, gamesPlayed: 23, streak: 5 },
   };
 
+  // ---------------- Socket Event Handlers ----------------
   useEffect(() => {
-    // Handle socket connection events
     const onConnect = () => {
-      console.log("✅ Connected to server:", socket.id);
+      console.log("✅ Connected:", socket.id);
       setIsConnected(true);
       socket.emit("get_lobbies");
     };
 
-    const onDisconnect = (reason) => {
-      console.log("❌ Disconnected:", reason);
+    const onDisconnect = () => {
+      console.log("❌ Disconnected");
       setIsConnected(false);
     };
 
-    const onLobbiesList = (lobbiesList) => {
-      console.log("📋 Lobbies:", lobbiesList);
-      setLobbies(lobbiesList);
+    const onLobbiesList = (list) => {
+      setLobbies(list);
     };
 
-    const onLobbiesUpdated = (lobbiesList) => {
-      console.log("🔄 Lobbies updated:", lobbiesList);
-      setLobbies(lobbiesList);
+    const onLobbiesUpdated = (list) => {
+      setLobbies(list);
     };
 
-    // Register event listeners once
+    const onUserJoined = (data) => {
+      setLobbies((prev) =>
+        prev.map((lobby) =>
+          lobby.id === data.lobbyId
+            ? { ...lobby, users: data.users, userCount: data.users.length }
+            : lobby
+        )
+      );
+      if (currentLobbyId === data.lobbyId) {
+        setCurrentLobbyId(data.lobbyId);
+      }
+    };
+
+    const onUserLeft = (data) => {
+      setLobbies((prev) =>
+        prev.map((lobby) =>
+          lobby.id === data.lobbyId
+            ? { ...lobby, users: data.users, userCount: data.users.length }
+            : lobby
+        )
+      );
+      if (currentLobbyId === data.lobbyId && data.users.length === 0) {
+        setCurrentLobbyId(null);
+      }
+    };
+
+    const onLobbyCreated = (lobby) => {
+      setCurrentLobbyId(lobby.id);
+      router.push(`/app/child/game/${lobby.id}`);
+    };
+
+    const onLobbyJoined = (lobby) => {
+      setCurrentLobbyId(lobby.id);
+      router.push(`/app/child/game/${lobby.id}`);
+    };
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("lobbies_list", onLobbiesList);
     socket.on("lobbies_updated", onLobbiesUpdated);
+    socket.on("user_joined", onUserJoined);
+    socket.on("user_left", onUserLeft);
+    socket.on("lobby_created", onLobbyCreated);
+    socket.on("lobby_joined", onLobbyJoined);
 
-    // Request lobby list on mount
-    if (socket.connected) socket.emit("get_lobbies");
+    if (socket.connected) {
+      socket.emit("get_lobbies");
+    }
 
-    // Cleanup event listeners only (not disconnect)
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("lobbies_list", onLobbiesList);
       socket.off("lobbies_updated", onLobbiesUpdated);
+      socket.off("user_joined", onUserJoined);
+      socket.off("user_left", onUserLeft);
+      socket.off("lobby_created", onLobbyCreated);
+      socket.off("lobby_joined", onLobbyJoined);
     };
-  }, []);
+  }, [socket, router, currentLobbyId]);
+
+  // ---------------- Actions ----------------
+  const handleCreateLobby = () => {
+    if (!userData.name) return alert("Please set your name first!");
+    socket.emit("create_lobby", userData.name);
+  };
 
   const handleLobbyClick = (lobby) => {
-    if (!socket) return;
-    if (lobby.userCount >= 4) {
-      alert("This lobby is full!");
-      return;
-    }
-
-    console.log(`Joining lobby ${lobby.id}`);
+    if (lobby.userCount >= 4) return alert("This lobby is full!");
     socket.emit("join_lobby", { lobbyId: lobby.id, userName: userData.name });
-
-    socket.once("lobby_joined", (joinedLobby) => {
-      console.log("✅ Joined lobby:", joinedLobby);
-      router.push(`/app/child/game/${lobby.id}`);
-    });
   };
 
-  const handleCreateLobby = () => {
-    if (!socket) return;
-    console.log("Creating new lobby...");
-    socket.emit("create_lobby", userData.name);
-
-    socket.once("lobby_created", (lobby) => {
-      console.log("✅ Lobby created:", lobby);
-      router.push(`/app/child/game/${lobby.id}`);
-    });
-  };
-
+  // ---------------- Render ----------------
   return (
     <div className="flex h-screen w-screen">
+      {/* LEFT PANEL */}
       <div className="w-1/4 bg-[#BDCCBA] h-full p-6 flex flex-col gap-6 overflow-y-auto">
-        {/* Profile Header */}
-        <div className="bg-white p-6 border-4 border-black ">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-4xl border-4 border-black">
-              {userData.avatar}
-            </div>
-            <h2 className="text-2xl ITC-demi text-gray-800">{userData.name}</h2>
+        {/* Profile Card */}
+        <div className="bg-white p-6 border-4 border-black flex flex-col items-center gap-3">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-4xl border-4 border-black">
+            {userData.avatar}
           </div>
+          <h2 className="text-2xl ITC-demi text-gray-800">{userData.name}</h2>
         </div>
 
-        {/* Balance Card */}
-        <div className="bg-white  p-6 border-4 border-black ">
+        {/* Balance */}
+        <div className="bg-white p-6 border-4 border-black">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-gray-600">
               My Balance
@@ -115,8 +141,8 @@ export default function Lobby() {
           </p>
         </div>
 
-        {/* Parents Card */}
-        <div className="bg-white  p-6 border-4 border-black ">
+        {/* Parents */}
+        <div className="bg-white p-6 border-4 border-black">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xl">👨‍👩‍👦</span>
             <h3 className="text-lg ITC-demi text-gray-800">My Parents</h3>
@@ -133,8 +159,8 @@ export default function Lobby() {
           </div>
         </div>
 
-        {/* Stats Card */}
-        <div className="bg-white p-6 border-4 border-black ">
+        {/* Stats */}
+        <div className="bg-white p-6 border-4 border-black">
           <h3 className="text-lg ITC-demi text-gray-800 mb-4">My Stats</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -174,9 +200,10 @@ export default function Lobby() {
         </div>
       </div>
 
-      {/* RIGHT SIDE */}
-      <div className="w-3/4 fade-in relative h-full p-4">
-        <div className="flex items-center justify-between">
+      {/* RIGHT PANEL */}
+      <div className="w-3/4 relative h-full p-4 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <Button
             onClick={() => router.push("/app/child/main")}
             variant="green"
@@ -201,13 +228,8 @@ export default function Lobby() {
           </div>
         </div>
 
-        <p className="mt-6 ITC-bold text-2xl px-4">Game Lobbies</p>
-        <p className="ITC-medium text-lg px-4 w-1/2">
-          Select an open lobby and play with others to earn money and purchase
-          new chores to complete.
-        </p>
-
-        <div className="flex flex-wrap gap-6 px-4 mt-4">
+        {/* Lobby List */}
+        <div className="flex flex-wrap gap-6 overflow-y-auto">
           {lobbies.length === 0 ? (
             <div className="w-full text-center py-12">
               <p className="text-xl text-gray-500 ITC-medium">
