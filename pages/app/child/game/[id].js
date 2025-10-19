@@ -1,6 +1,7 @@
+"use client";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../../../../components/buttons/Button";
-import LobbyCard from "../../../../components/LobbyCard";
 import Image from "next/image";
 
 // Import all images
@@ -23,23 +24,26 @@ export default function WaitingRoom() {
     },
   };
 
-  // Use the imported images directly
-  const characters = [
-    { id: 1, name: "Boat", image: boat },
-    { id: 2, name: "Boot", image: boot },
-    { id: 3, name: "Dog", image: dog },
-    { id: 4, name: "Car", image: car },
-  ];
+  const [characters, setCharacters] = useState([
+    { id: 1, name: "Boat", image: boat, selected: false, selectedBy: null },
+    { id: 2, name: "Boot", image: boot, selected: false, selectedBy: null },
+    { id: 3, name: "Dog", image: dog, selected: false, selectedBy: null },
+    { id: 4, name: "Car", image: car, selected: false, selectedBy: null },
+  ]);
 
-  const handleCharacterSelect = (character) => {
-    console.log('Selected character:', character.name);
-    // Add your character selection logic here
+  const handleSelectCharacter = (selectedCharacter) => {
+    setCharacters((prev) =>
+      prev.map((char) =>
+        char.id === selectedCharacter.id
+          ? { ...char, selected: true, selectedBy: userData.name }
+          : char
+      )
+    );
   };
 
   const handleLobbyClick = (lobby) => {
     if (lobby.status === "open") {
-      console.log(`Joining lobby #${lobby.id}`);
-      router.push(`/app/child/game/${lobby.id}`);
+      router.push(`/app/child/game/play/${lobby.id}`);
     }
   };
 
@@ -132,23 +136,28 @@ export default function WaitingRoom() {
       {/* Right Side - Character Selection */}
       <div className="w-3/4 fade-in relative h-full p-4">
         <Button
-          onClick={() => {
-            router.push("/app/child/main");
-          }}
+          onClick={() => router.push("/app/child/main")}
           variant="green"
         >
           Back
         </Button>
+
         <p className="mt-6 ITC-bold text-2xl px-4">Pick your character</p>
 
         <div className="flex flex-wrap gap-6 px-4 mt-4">
           {characters.map((character) => (
-            <div 
+            <div
               key={character.id}
-              className="p-12 rounded-lg cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => handleCharacterSelect(character)}
+              className="p-6 rounded-lg text-center cursor-pointer"
+              onClick={() => handleSelectCharacter(character)}
             >
-              <div className="w-32 h-32 relative">
+              <div
+                className={`w-32 h-32 relative transition-all duration-300 ${
+                  character.selected
+                    ? "opacity-50 scale-95"
+                    : "hover:scale-105"
+                }`}
+              >
                 <Image
                   src={character.image}
                   alt={character.name}
@@ -158,6 +167,9 @@ export default function WaitingRoom() {
                 />
               </div>
               <p className="text-center mt-2 ITC-demi">{character.name}</p>
+              {character.selectedBy && (
+                <p className="text-sm text-gray-700">{character.selectedBy}</p>
+              )}
             </div>
           ))}
         </div>
