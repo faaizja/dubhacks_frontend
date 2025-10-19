@@ -4,14 +4,17 @@ import { useRouter } from "next/navigation";
 
 export default function LobbyPage() {
   const router = useRouter();
+  const [userId, setUserId] = useState("63046610-4264-4ace-a20b-d60633443c9e");
   const [myName, setMyName] = useState("");
   const [currentLobby, setCurrentLobby] = useState(null);
   const [lobbies, setLobbies] = useState([]);
 
+  const API_BASE = "http://localhost:3004";
+
   // Fetch lobbies from backend
   const fetchLobbies = async () => {
     try {
-      const res = await fetch("http://localhost:3004/lobby/all");
+      const res = await fetch(`${API_BASE}/lobby/all`);
       const data = await res.json();
       console.log(data);
       setLobbies(data.lobbies);
@@ -28,9 +31,11 @@ export default function LobbyPage() {
     return () => clearInterval(interval); // cleanup on unmount
   }, []);
 
+  // Create lobby
   const createLobby = async () => {
+    if (!myName.trim()) return alert("Set your name first!");
     try {
-      const res = await fetch("http://localhost:3004/lobby/create", {
+      const res = await fetch(`${API_BASE}/lobby/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: myName }),
@@ -44,16 +49,34 @@ export default function LobbyPage() {
     }
   };
 
+  // Join lobby
   const joinLobby = async (lobbyId) => {
-    if (!myName.trim()) return alert("Set your name first!");
     try {
-      await fetch(`http://localhost:3004/lobby/${lobbyId}/join`, {
+      await fetch(`${API_BASE}/lobby/${lobbyId}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
       });
       console.log(`✅ Joined lobby ${lobbyId}`);
     } catch (err) {
       console.error(err);
+      alert("Failed to join lobby");
+    }
+  };
+
+  // Leave lobby
+  const leaveLobby = async (lobbyId) => {
+    try {
+      await fetch(`${API_BASE}/lobby/${lobbyId}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      console.log(`❌ Left lobby ${lobbyId}`);
+      fetchLobbies(); // refresh the lobby list
+    } catch (err) {
+      console.error(err);
+      alert("Failed to leave lobby");
     }
   };
 
@@ -68,12 +91,20 @@ export default function LobbyPage() {
       <button onClick={createLobby}>Create Lobby</button>
 
       <h2>Available Lobbies</h2>
-      {lobbies.map((lobby) => (
-        <div key={lobby.id}>
-          🎮 Lobby {lobby.id} ({lobby.userCount}/4)
-          <button onClick={() => joinLobby(lobby.id)}>Join</button>
-        </div>
-      ))}
+      {lobbies.map((lobby) => {
+        const isMember = lobby.user_ids?.includes(userId);
+        return (
+          <div key={lobby.id}>
+            🎮 Lobby {lobby.id} ({lobby.user_count}/4)
+            {!isMember && (
+              <button onClick={() => joinLobby(lobby.id)}>Join</button>
+            )}
+            {isMember && (
+              <button onClick={() => leaveLobby(lobby.id)}>Leave</button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
