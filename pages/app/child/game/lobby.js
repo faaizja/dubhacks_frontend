@@ -2,13 +2,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "../../../../components/buttons/Button";
 import LobbyCard from "../../../../components/LobbyCard";
 import { useState, useEffect } from "react";
-import io from "socket.io-client";
+import { socket } from "../../../../utils/socket"; // <-- Import shared socket
 
 export default function Lobby() {
   const router = useRouter();
   const [lobbies, setLobbies] = useState([]);
-  const [socket, setSocket] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(socket.connected);
 
   const userData = {
     name: "Alex",
@@ -22,87 +21,65 @@ export default function Lobby() {
     },
   };
 
-  // Initialize Socket.IO connection
-  // Initialize Socket.IO connection
   useEffect(() => {
-    const socketInstance = io(
-      "https://norris-nondisguised-behavioristically.ngrok-free.dev",
-      {
-        transports: ["polling", "websocket"],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        extraHeaders: {
-          "ngrok-skip-browser-warning": "true",
-        },
-        withCredentials: false,
-      }
-    );
-
-    socketInstance.on("connect", () => {
-      console.log("✅ Connected to server:", socketInstance.id);
+    // Handle socket connection events
+    const onConnect = () => {
+      console.log("✅ Connected to server:", socket.id);
       setIsConnected(true);
-      socketInstance.emit("get_lobbies");
-    });
+      socket.emit("get_lobbies");
+    };
 
-    socketInstance.on("connect_error", (error) => {
-      console.error("❌ Connection error:", error.message);
+    const onDisconnect = (reason) => {
+      console.log("❌ Disconnected:", reason);
       setIsConnected(false);
-    });
+    };
 
-    socketInstance.on("disconnect", (reason) => {
-      console.log("❌ Disconnected from server. Reason:", reason);
-      setIsConnected(false);
-    });
-
-    socketInstance.on("lobbies_list", (lobbiesList) => {
-      console.log("📋 Received lobbies:", lobbiesList);
+    const onLobbiesList = (lobbiesList) => {
+      console.log("📋 Lobbies:", lobbiesList);
       setLobbies(lobbiesList);
-    });
+    };
 
-    socketInstance.on("lobbies_updated", (lobbiesList) => {
+    const onLobbiesUpdated = (lobbiesList) => {
       console.log("🔄 Lobbies updated:", lobbiesList);
       setLobbies(lobbiesList);
-    });
+    };
 
-    socketInstance.on("error", (error) => {
-      console.error("❌ Socket error:", error);
-    });
+    // Register event listeners once
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("lobbies_list", onLobbiesList);
+    socket.on("lobbies_updated", onLobbiesUpdated);
 
-    setSocket(socketInstance);
+    // Request lobby list on mount
+    if (socket.connected) socket.emit("get_lobbies");
 
+    // Cleanup event listeners only (not disconnect)
     return () => {
-      socketInstance.disconnect();
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("lobbies_list", onLobbiesList);
+      socket.off("lobbies_updated", onLobbiesUpdated);
     };
   }, []);
 
   const handleLobbyClick = (lobby) => {
     if (!socket) return;
-
-    // Check if lobby is full
     if (lobby.userCount >= 4) {
       alert("This lobby is full!");
       return;
     }
 
     console.log(`Joining lobby ${lobby.id}`);
+    socket.emit("join_lobby", { lobbyId: lobby.id, userName: userData.name });
 
-    // Join the lobby via Socket.IO
-    socket.emit("join_lobby", {
-      lobbyId: lobby.id,
-      userName: userData.name,
-    });
-
-    // Listen for successful join
     socket.once("lobby_joined", (joinedLobby) => {
-      console.log("✅ Successfully joined lobby:", joinedLobby);
+      console.log("✅ Joined lobby:", joinedLobby);
       router.push(`/app/child/game/${lobby.id}`);
     });
   };
 
   const handleCreateLobby = () => {
     if (!socket) return;
-
     console.log("Creating new lobby...");
     socket.emit("create_lobby", userData.name);
 
@@ -114,7 +91,6 @@ export default function Lobby() {
 
   return (
     <div className="flex h-screen w-screen">
-      {/* Left Sidebar */}
       <div className="w-1/4 bg-[#BDCCBA] h-full p-6 flex flex-col gap-6 overflow-y-auto">
         {/* Profile Header */}
         <div className="bg-white p-6 border-4 border-black ">
@@ -198,20 +174,17 @@ export default function Lobby() {
         </div>
       </div>
 
-      {/* Right Side - Lobbies Area */}
+      {/* RIGHT SIDE */}
       <div className="w-3/4 fade-in relative h-full p-4">
         <div className="flex items-center justify-between">
           <Button
-            onClick={() => {
-              router.push("/app/child/main");
-            }}
+            onClick={() => router.push("/app/child/main")}
             variant="green"
           >
             Back
           </Button>
 
           <div className="flex items-center gap-4">
-            {/* Connection Status */}
             <div className="flex items-center gap-2">
               <div
                 className={`w-3 h-3 rounded-full ${
@@ -222,8 +195,6 @@ export default function Lobby() {
                 {isConnected ? "Connected" : "Disconnected"}
               </span>
             </div>
-
-            {/* Create Lobby Button */}
             <Button onClick={handleCreateLobby} variant="primary">
               + Create Lobby
             </Button>
