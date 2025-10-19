@@ -110,41 +110,36 @@ export default function Main() {
       </div>
 
       {/* Right Side - Button Area */}
-      <div className="w-3/4 fade-in relative h-full">
-        <button className="absolute border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group top-2 left-2 w-max h-max">
-          <Image
-            className="group-hover:p-1 transition-all duration-500 ease-in-out"
-            width={"236"}
-            src={ChoresButton}
-            onClick={handleClick}
-          />
-        </button>
-        <button className="absolute border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group top-2 right-2 w-max h-max">
-          <Image
-            className="group-hover:p-1 transition-all duration-500 ease-in-out"
-            width={"236"}
-            src={ProfileButton}
-          />
-        </button>
-        <button className="absolute border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group bottom-2 left-2 w-max h-max">
-          <Image
-            className="group-hover:p-1 transition-all duration-500 ease-in-out"
-            width={"236"}
-            src={WalletButton}
-          />
-        </button>
-        <button
-          onClick={() => {
-            router.push("/app/child/game/lobby");
-          }}
-          className="absolute border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group bottom-2 right-2 w-max h-max"
-        >
-          <Image
-            className="group-hover:p-1 transition-all duration-500 ease-in-out"
-            width={"236"}
-            src={PlayButton}
-          />
-        </button>
+      <div className="w-3/4 fade-in h-full">
+        <div className="flex flex-row mt-auto">
+          <button className=" border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group left-2 w-max h-max">
+            <Image
+              className="group-hover:p-1 transition-all duration-500 ease-in-out"
+              width={"236"}
+              src={ChoresButton}
+              onClick={handleClick}
+            />
+          </button>
+          <button className=" border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group bottom-2 left-2 w-max h-max">
+            <Image
+              className="group-hover:p-1 transition-all duration-500 ease-in-out"
+              width={"236"}
+              src={WalletButton}
+            />
+          </button>
+          <button
+            onClick={() => {
+              router.push("/app/child/game/lobby");
+            }}
+            className=" border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group bottom-2 right-2 w-max h-max"
+          >
+            <Image
+              className="group-hover:p-1 transition-all duration-500 ease-in-out"
+              width={"236"}
+              src={PlayButton}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );
