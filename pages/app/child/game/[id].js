@@ -17,6 +17,7 @@ export default function WaitingRoom() {
   const socket = getSocket();
 
   const [players, setPlayers] = useState([]);
+  const [selectedCharacterId, setSelectedCharacterId] = useState(null); // ✅ track the character this user picked
   const [characters, setCharacters] = useState([
     { id: 1, name: "Boat", image: boat, selected: false, selectedBy: null },
     { id: 2, name: "Boot", image: boot, selected: false, selectedBy: null },
@@ -70,7 +71,16 @@ export default function WaitingRoom() {
   }, [lobbyId, userName, socket]);
 
   const handleSelectCharacter = (char) => {
-    if (char.selected) return; // already taken
+    // ✅ Prevent selecting a taken character
+    if (char.selected) return;
+
+    // ✅ Prevent the same player from picking multiple characters
+    if (selectedCharacterId) return;
+
+    // ✅ Update local state
+    setSelectedCharacterId(char.id);
+
+    // ✅ Send event to server
     socket.emit("select_character", {
       lobbyId,
       charId: char.id,
@@ -109,22 +119,23 @@ export default function WaitingRoom() {
           {characters.map((c) => (
             <div
               key={c.id}
-              className={`p-6 rounded-lg text-center cursor-pointer border-2 border-black ${
-                c.selected ? "opacity-50 scale-95" : "hover:scale-105"
+              className={`p-6 rounded-lg text-center cursor-pointer border-2 border-black transition-all ${
+                c.selected
+                  ? "opacity-50 scale-95"
+                  : selectedCharacterId === c.id
+                  ? "bg-green-200 scale-105"
+                  : "hover:scale-105"
               }`}
               onClick={() => handleSelectCharacter(c)}
             >
               <div className="w-32 h-32 relative">
-                <Image
-                  src={c.image}
-                  alt={c.name}
-                  fill
-                  className="object-contain"
-                />
+                <Image src={c.image} alt={c.name} fill className="object-contain" />
               </div>
               <p className="mt-2 font-bold">{c.name}</p>
               {c.selectedBy && (
-                <p className="text-sm text-gray-700">{c.selectedBy}</p>
+                <p className="text-sm text-gray-700">
+                  {c.selectedBy === userName ? "You" : c.selectedBy}
+                </p>
               )}
             </div>
           ))}
