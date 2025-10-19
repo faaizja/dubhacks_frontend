@@ -125,7 +125,7 @@ export default function Wallet() {
     };
 
     return (
-      <div className="flex h-screen w-screen">
+    <div className="flex h-screen w-screen">
 
         {/* Left Sidebar */}
       <div className="w-1/4 bg-[#BDCCBA] h-full p-6 flex flex-col gap-6 overflow-y-auto">
@@ -174,7 +174,6 @@ export default function Wallet() {
               </div>
             </div>
           </div>
-        </div>
   
         {/* Right Side - Chores Area */}
         <div className="w-3/4 h-full p-6 overflow-y-auto bg-[#E8F0E6]">
