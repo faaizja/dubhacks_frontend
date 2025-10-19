@@ -29,6 +29,10 @@ export default function Main() {
     router.push("/app/child/choresSection");
   };
 
+  const openWallet = () => {
+    router.push("/app/child/choresSection");
+  };
+
   return (
     <div className="flex h-screen w-screen">
       {/* Left Sidebar */}
@@ -56,7 +60,9 @@ export default function Main() {
           </button>
 
           {/* Wallet Button */}
-          <button className="flex-1 border-4 border-black bg-white hover:bg-stone-200 transition-all duration-500 ease-in-out flex justify-center items-center">
+          <button 
+          onClick={openWallet}
+          className="flex-1 border-4 border-black bg-white hover:bg-stone-200 transition-all duration-500 ease-in-out flex justify-center items-center">
             <Image
               className="group-hover:p-1 transition-all duration-500 ease-in-out"
               width={200}
