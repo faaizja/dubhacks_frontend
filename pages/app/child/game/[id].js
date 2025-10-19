@@ -32,10 +32,19 @@ export default function WaitingRoom() {
       lId === lobbyId && setPlayers(users);
     const handleUserLeft = ({ lobbyId: lId, users }) =>
       lId === lobbyId && setPlayers(users);
+
     const handleCharacterSelected = ({ charId, selectedBy }) => {
       setCharacters((prev) =>
         prev.map((c) =>
           c.id === charId ? { ...c, selected: true, selectedBy } : c
+        )
+      );
+    };
+
+    const handleCharacterDeselected = ({ charId }) => {
+      setCharacters((prev) =>
+        prev.map((c) =>
+          c.id === charId ? { ...c, selected: false, selectedBy: null } : c
         )
       );
     };
@@ -58,6 +67,7 @@ export default function WaitingRoom() {
     socket.on("user_joined", handleUserJoined);
     socket.on("user_left", handleUserLeft);
     socket.on("character_selected", handleCharacterSelected);
+    socket.on("character_deselected", handleCharacterDeselected);
 
     return () => {
       socket.off("lobby_data", updatePlayers);
@@ -65,6 +75,7 @@ export default function WaitingRoom() {
       socket.off("user_joined", handleUserJoined);
       socket.off("user_left", handleUserLeft);
       socket.off("character_selected", handleCharacterSelected);
+      socket.off("character_deselected", handleCharacterDeselected);
       socket.emit("leave_lobby", lobbyId);
     };
   }, [lobbyId, userName, socket]);
@@ -76,6 +87,14 @@ export default function WaitingRoom() {
       charId: char.id,
       selectedBy: userName,
     });
+  };
+
+  const handleCharacterDeselected = ({ charId }) => {
+    setCharacters((prev) =>
+      prev.map((c) =>
+        c.id === charId ? { ...c, selected: false, selectedBy: null } : c
+      )
+    );
   };
 
   return (
