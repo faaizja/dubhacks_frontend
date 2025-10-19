@@ -101,6 +101,7 @@ export default function WaitingRoom() {
 
   const handleSelectCharacter = (char) => {
     if (char.selected) return;
+
     if (selectedCharacterId) return;
 
     setSelectedCharacterId(char.id);
