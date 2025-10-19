@@ -29,14 +29,19 @@ const BOARD_PATH = [
   { x: 720, y: 560 }, // Birthday Gift
 ];
 
+// Cute emoji tokens for each player
+const PLAYER_TOKENS = ["👦", "👧", "🐶", "🐱", "🐰", "🐢", "🦊", "🐼"];
 
 export default function Game() {
   const { id: lobbyId } = useParams();
   const [socket, setSocket] = useState(null);
   const [players, setPlayers] = useState({});
+  const [emojiMap, setEmojiMap] = useState({});
 
+  // Connect to Socket.io
   useEffect(() => {
     if (!lobbyId) return;
+
     const SOCKET_URL =
       "https://norris-nondisguised-behavioristically.ngrok-free.dev";
     const socketIo = io(SOCKET_URL, {
@@ -75,12 +80,29 @@ export default function Game() {
     return () => socketIo.disconnect();
   }, [lobbyId]);
 
+  // Assign emojis to players dynamically
+  useEffect(() => {
+    setEmojiMap((prev) => {
+      const updated = { ...prev };
+      const currentIds = Object.keys(players);
+      let used = Object.values(updated);
+      currentIds.forEach((id, i) => {
+        if (!updated[id]) {
+          const nextEmoji =
+            PLAYER_TOKENS.find((e) => !used.includes(e)) || "🙂";
+          updated[id] = nextEmoji;
+          used.push(nextEmoji);
+        }
+      });
+      return updated;
+    });
+  }, [players]);
+
   // Move player along the path
   useEffect(() => {
     if (!socket) return;
     const handleKeyDown = (e) => {
       if (e.key === " ") {
-        // SPACEBAR to move one step
         setPlayers((prev) => {
           const me = prev[socket.id];
           if (!me) return prev;
@@ -95,7 +117,7 @@ export default function Game() {
   }, [socket]);
 
   return (
-    <div className="relative w-[800px] h-[800px] border-4 border-black mx-auto mt-6">
+    <div className="relative w-[800px] h-[800px] border-4 border-black mx-auto mt-6 rounded-xl overflow-hidden">
       {/* Game Board */}
       <Image
         src={GameBoard}
@@ -104,24 +126,34 @@ export default function Game() {
         className="object-contain rounded-xl"
       />
 
-      {/* Players */}
-      {Object.entries(players).map(([id, player]) => {
-        const tile = BOARD_PATH[player.index || 0];
-        return (
-          <div
-            key={id}
-            className="absolute w-8 h-8 rounded-full text-center font-bold text-white shadow-md border-2 border-black"
-            style={{
-              left: `${tile.x}px`,
-              top: `${tile.y}px`,
-              backgroundColor: player.color,
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            {id === socket?.id ? "ME" : "P"}
-          </div>
-        );
-      })}
+      {/* Players (stacked and animated) */}
+      {(() => {
+        const groupedByTile = {};
+        for (const [id, player] of Object.entries(players)) {
+          const tileIndex = player.index || 0;
+          if (!groupedByTile[tileIndex]) groupedByTile[tileIndex] = [];
+          groupedByTile[tileIndex].push({ id, ...player });
+        }
+
+        return Object.entries(groupedByTile).flatMap(([tileIndex, group]) => {
+          const tile = BOARD_PATH[tileIndex];
+          return group.map((player, i) => (
+            <div
+              key={player.id}
+              className="absolute w-8 h-8 flex items-center justify-center text-2xl font-bold shadow-md border-2 border-black rounded-full transition-all duration-200"
+              style={{
+                left: `${tile.x + i * 0}px`, // horizontal offset
+                top: `${tile.y - i * 40}px`, // vertical offset
+                transform: "translate(-50%, -50%)",
+                backgroundColor:
+                  player.id === socket?.id ? "#22c55e" : player.color,
+              }}
+            >
+              {emojiMap[player.id] || "🙂"}
+            </div>
+          ));
+        });
+      })()}
     </div>
   );
 }
