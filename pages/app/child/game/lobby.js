@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
 let socket;
 
 export default function LobbyPage() {
+  const router = useRouter();
   const [isConnected, setIsConnected] = useState(false);
   const [myName, setMyName] = useState("");
   const [currentLobby, setCurrentLobby] = useState(null);
@@ -131,6 +133,11 @@ export default function LobbyPage() {
     }
     log(`Joining lobby ${lobbyId} as ${myName}...`, "info");
     socket.emit("join_lobby", { lobbyId, userName: myName });
+
+    // redirect to WaitingRoom/Game page
+    router.push(
+      `/app/child/game/${lobbyId}?name=${encodeURIComponent(myName)}`
+    );
   }
 
   function leaveLobby() {
