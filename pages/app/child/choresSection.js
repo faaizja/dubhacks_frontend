@@ -61,7 +61,6 @@ export default function choresSection() {
           <div className="bg-[#8B4513] px-4 py-3 border-b-4 border-black">
             <div className="flex items-center justify-between">
               <span className="text-white text-xs font-bold tracking-wider">{chore.category}</span>
-              <span className="text-3xl">{chore.icon}</span>
             </div>
           </div>
 
