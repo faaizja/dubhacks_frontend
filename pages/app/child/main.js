@@ -29,7 +29,7 @@ export default function Main() {
   };
 
   const openWallet = () => {
-    router.push("/app/child/choresSection");
+    router.push("/app/child/wallet");
   };
 
   return (
