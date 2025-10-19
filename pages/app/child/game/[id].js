@@ -15,9 +15,22 @@ export default function WaitingRoom() {
   const lobbyId = searchParams.get("id") || searchParams.get("lobbyId");
   const userName = searchParams.get("name");
   const socket = getSocket();
+  const [isReady, setIsReady] = useState(false);
+
+  // ✅ Hardcoded DB User ID for now
+  const dbUserId = "63046610-4264-4ace-a20b-d60633443c9e";
+
+  const handleReady = () => {
+    if (!characters.find((c) => c.selectedBy === userName)) {
+      alert("You must select a character first!");
+      return;
+    }
+    setIsReady(true);
+    socket.emit("user_ready", { lobbyId, dbUserId });
+  };
 
   const [players, setPlayers] = useState([]);
-  const [selectedCharacterId, setSelectedCharacterId] = useState(null); // ✅ track the character this user picked
+  const [selectedCharacterId, setSelectedCharacterId] = useState(null);
   const [characters, setCharacters] = useState([
     { id: 1, name: "Boat", image: boat, selected: false, selectedBy: null },
     { id: 2, name: "Boot", image: boot, selected: false, selectedBy: null },
@@ -50,8 +63,8 @@ export default function WaitingRoom() {
       );
     };
 
-    // Join the lobby
-    socket.emit("join_lobby", { lobbyId, userName });
+    // ✅ Join the lobby with dbUserId
+    socket.emit("join_lobby", { lobbyId, userName, dbUserId });
 
     // Fetch current lobby data
     socket.emit("get_lobby", lobbyId);
@@ -70,6 +83,10 @@ export default function WaitingRoom() {
     socket.on("character_selected", handleCharacterSelected);
     socket.on("character_deselected", handleCharacterDeselected);
 
+    socket.on("game_started", ({ gameId, gameMembers, tiles }) => {
+      console.log(`game would start ${gameId} + ${gameMembers} + ${tiles}`);
+    });
+
     return () => {
       socket.off("lobby_data", updatePlayers);
       socket.off("lobby_joined", updatePlayers);
@@ -77,33 +94,24 @@ export default function WaitingRoom() {
       socket.off("user_left", handleUserLeft);
       socket.off("character_selected", handleCharacterSelected);
       socket.off("character_deselected", handleCharacterDeselected);
+      socket.off("game_started");
       socket.emit("leave_lobby", lobbyId);
     };
   }, [lobbyId, userName, socket]);
 
   const handleSelectCharacter = (char) => {
-    // ✅ Prevent selecting a taken character
     if (char.selected) return;
 
     if (selectedCharacterId) return;
 
-    // ✅ Update local state
     setSelectedCharacterId(char.id);
 
-    // ✅ Send event to server
+    // ✅ Send event to server with dbUserId
     socket.emit("select_character", {
       lobbyId,
       charId: char.id,
       selectedBy: userName,
     });
-  };
-
-  const handleCharacterDeselected = ({ charId }) => {
-    setCharacters((prev) =>
-      prev.map((c) =>
-        c.id === charId ? { ...c, selected: false, selectedBy: null } : c
-      )
-    );
   };
 
   return (
@@ -147,7 +155,12 @@ export default function WaitingRoom() {
               onClick={() => handleSelectCharacter(c)}
             >
               <div className="w-32 h-32 relative">
-                <Image src={c.image} alt={c.name} fill className="object-contain" />
+                <Image
+                  src={c.image}
+                  alt={c.name}
+                  fill
+                  className="object-contain"
+                />
               </div>
               <p className="mt-2 font-bold">{c.name}</p>
               {c.selectedBy && (
@@ -158,6 +171,14 @@ export default function WaitingRoom() {
             </div>
           ))}
         </div>
+        <button
+          className={`mt-4 px-4 py-2 font-bold border-2 border-black rounded ${
+            isReady ? "bg-green-400" : "bg-gray-200"
+          }`}
+          onClick={handleReady}
+        >
+          {isReady ? "Ready ✅" : "Ready"}
+        </button>
       </div>
     </div>
   );
