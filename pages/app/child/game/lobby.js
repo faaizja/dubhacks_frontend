@@ -23,18 +23,35 @@ export default function Lobby() {
   };
 
   // Initialize Socket.IO connection
+  // Initialize Socket.IO connection
   useEffect(() => {
-    const socketInstance = io("http://localhost:3004");
+    const socketInstance = io(
+      "https://norris-nondisguised-behavioristically.ngrok-free.dev",
+      {
+        transports: ["polling", "websocket"],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        extraHeaders: {
+          "ngrok-skip-browser-warning": "true",
+        },
+        withCredentials: false,
+      }
+    );
 
     socketInstance.on("connect", () => {
       console.log("✅ Connected to server:", socketInstance.id);
       setIsConnected(true);
-      // Request lobbies when connected
       socketInstance.emit("get_lobbies");
     });
 
-    socketInstance.on("disconnect", () => {
-      console.log("❌ Disconnected from server");
+    socketInstance.on("connect_error", (error) => {
+      console.error("❌ Connection error:", error.message);
+      setIsConnected(false);
+    });
+
+    socketInstance.on("disconnect", (reason) => {
+      console.log("❌ Disconnected from server. Reason:", reason);
       setIsConnected(false);
     });
 
@@ -54,7 +71,6 @@ export default function Lobby() {
 
     setSocket(socketInstance);
 
-    // Cleanup on unmount
     return () => {
       socketInstance.disconnect();
     };
