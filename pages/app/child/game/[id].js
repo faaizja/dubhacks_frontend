@@ -10,7 +10,7 @@ import boot from "../../../../assets/boot.png";
 import dog from "../../../../assets/dog.png";
 import car from "../../../../assets/car.png";
 
-let socket;
+import { getSocket } from "../../../../utils/socket";
 
 export default function WaitingRoom() {
   const searchParams = useSearchParams();
@@ -25,30 +25,19 @@ export default function WaitingRoom() {
     { id: 4, name: "Car", image: car, selected: false, selectedBy: null },
   ]);
 
+  const socket = getSocket();
+
   useEffect(() => {
     if (!lobbyId || !userName) return;
 
-    socket =
-      socket ||
-      require("socket.io-client")(
-        "https://norris-nondisguised-behavioristically.ngrok-free.dev",
-        { transports: ["websocket", "polling"] }
-      );
+    socket.emit("join_lobby", { lobbyId, userName });
+    socket.emit("get_lobby", lobbyId);
 
-    socket.on("connect", () => {
-      console.log("✅ Connected", socket.id);
-      socket.emit("join_lobby", { lobbyId, userName });
-      socket.emit("get_lobby", lobbyId); // <- fetch current lobby state
-    });
-
-    socket.on("lobby_data", (lobby) => setPlayers(lobby.users)); // <- add this
-
+    socket.on("lobby_data", (lobby) => setPlayers(lobby.users));
     socket.on("lobby_joined", (lobby) => setPlayers(lobby.users));
-
     socket.on("user_joined", (data) => {
       if (data.lobbyId === lobbyId) setPlayers(data.users);
     });
-
     socket.on("user_left", (data) => {
       if (data.lobbyId === lobbyId) setPlayers(data.users);
     });
@@ -63,10 +52,9 @@ export default function WaitingRoom() {
 
     return () => {
       socket.emit("leave_lobby", lobbyId);
-      socket.disconnect();
+      // Do NOT disconnect; socket is persistent
     };
   }, [lobbyId, userName]);
-
 
   const handleSelectCharacter = (char) => {
     if (char.selected) return;
