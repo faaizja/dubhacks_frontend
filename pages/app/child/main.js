@@ -3,8 +3,11 @@ import PlayButton from "../../../assets/PlayButton.png";
 import ChoresButton from "../../../assets/ChoresButton.png";
 import ProfileButton from "../../../assets/ProfileButton.png";
 import WalletButton from "../../../assets/WalletButton.png";
+import { useRouter } from "next/navigation";
+
 
 export default function Main() {
+  const router = useRouter();
   // Mock data - replace with actual user data
   const userData = {
     name: "Alex",
@@ -16,6 +19,10 @@ export default function Main() {
       gamesPlayed: 23,
       streak: 5,
     },
+  };
+
+  const handleClick = () => {
+    router.push("/app/child/choresSection");
   };
 
   return (
@@ -111,6 +118,7 @@ export default function Main() {
             className="group-hover:p-1 transition-all duration-500 ease-in-out"
             width={"236"}
             src={ChoresButton}
+            onClick={handleClick}
           />
         </button>
         <button className="absolute border-4 bg-white transition-all duration-500 ease-in-out hover:bg-stone-200 border-black group top-2 right-2 w-max h-max">
