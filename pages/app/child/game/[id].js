@@ -85,7 +85,6 @@ export default function WaitingRoom() {
     // ✅ Prevent selecting a taken character
     if (char.selected) return;
 
-    // ✅ Prevent the same player from picking multiple characters
     if (selectedCharacterId) return;
 
     // ✅ Update local state
