@@ -149,23 +149,34 @@ export default function Game() {
       <Image src={GameBoard} alt="Game Board" fill className="object-contain" />
 
       {/* Players */}
-      {Object.entries(players).map(([id, player]) => {
-        const tile = BOARD_PATH[player.index || 0];
-        return (
-          <div
-            key={id}
-            className="absolute w-8 h-8 flex items-center justify-center text-2xl font-bold shadow-md border-2 border-black rounded-full transition-all duration-200"
-            style={{
-              left: `${tile.x}px`,
-              top: `${tile.y}px`,
-              transform: "translate(-50%, -50%)",
-              backgroundColor: id === socket?.id ? "#22c55e" : player.color,
-            }}
-          >
-            {emojiMap[id] || "🙂"}
-          </div>
-        );
-      })}
+      {/* Players */}
+      {(() => {
+        const groupedByTile = {};
+        for (const [id, player] of Object.entries(players)) {
+          const tileIndex = player.index || 0;
+          if (!groupedByTile[tileIndex]) groupedByTile[tileIndex] = [];
+          groupedByTile[tileIndex].push({ id, ...player });
+        }
+
+        return Object.entries(groupedByTile).flatMap(([tileIndex, group]) => {
+          const tile = BOARD_PATH[tileIndex];
+          return group.map((player, i) => (
+            <div
+              key={player.id}
+              className="absolute w-8 h-8 flex items-center justify-center text-2xl font-bold shadow-md border-2 border-black rounded-full transition-all duration-200"
+              style={{
+                left: `${tile.x + i * 20}px`, // small horizontal offset
+                top: `${tile.y - i * 20}px`, // vertical stacking
+                transform: "translate(-50%, -50%)",
+                backgroundColor:
+                  player.id === socket?.id ? "#22c55e" : player.color,
+              }}
+            >
+              {emojiMap[player.id] || "🙂"}
+            </div>
+          ));
+        });
+      })()}
 
       {/* Modal */}
       {modal.open && (
