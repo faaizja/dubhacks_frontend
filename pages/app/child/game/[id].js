@@ -11,22 +11,22 @@ const BOARD_PATH = [
   { x: 560, y: 720 }, // Ice Cream Truck
   { x: 450, y: 720 }, // Lost Wallet
   { x: 340, y: 720 }, // Bake Sale Stand
-  { x: 400, y: 720 }, // Chance
-  { x: 320, y: 720 }, // Jail Visiting
-  { x: 240, y: 640 }, // Lemonade Stand
-  { x: 240, y: 560 }, // Lawn Mowing
-  { x: 240, y: 480 }, // Lost Bike
-  { x: 240, y: 400 }, // Community Chest
-  { x: 240, y: 320 }, // Free Parking
-  { x: 320, y: 240 }, // Chance (top)
-  { x: 400, y: 240 }, // Tutoring Lessons
-  { x: 480, y: 240 }, // Toy Store
-  { x: 560, y: 240 }, // School Field Trip
-  { x: 640, y: 240 }, // Go To Jail
-  { x: 720, y: 320 }, // Save
-  { x: 720, y: 400 }, // Community Chest
-  { x: 720, y: 480 }, // Chance
-  { x: 720, y: 560 }, // Birthday Gift
+  { x: 235, y: 720 }, // Chance
+  { x: 140, y: 775 }, // Jail Visiting
+  { x: 70, y: 565 }, // Lost Bike
+  { x: 70, y: 455 }, // Lawn Mowing
+  { x: 70, y: 340 }, // Lemonade Stand
+  { x: 70, y: 235 }, // Community Chest
+  { x: 70, y: 100 }, // Free Parking
+  { x: 235, y: 100 }, // Chance (top)
+  { x: 345, y: 100 }, // Tutoring Lessons
+  { x: 455, y: 100 }, // Toy Store
+  { x: 560, y: 100 }, // School Field Trip
+  { x: 720, y: 100 }, // Go To Jail
+  { x: 720, y: 235 }, // Save
+  { x: 720, y: 345 }, // Community Chest
+  { x: 720, y: 455 }, // Chance
+  { x: 720, y: 565 }, // Birthday Gift
 ];
 
 // Cute emoji tokens for each player
@@ -117,14 +117,9 @@ export default function Game() {
   }, [socket]);
 
   return (
-    <div className="relative w-[800px] h-[800px] border-4 border-black mx-auto mt-6 rounded-xl overflow-hidden">
+    <div className="relative w-[800px] h-[800px] mx-auto mt-6 overflow-hidden">
       {/* Game Board */}
-      <Image
-        src={GameBoard}
-        alt="Game Board"
-        fill
-        className="object-contain rounded-xl"
-      />
+      <Image src={GameBoard} alt="Game Board" fill className="object-contain" />
 
       {/* Players (stacked and animated) */}
       {(() => {
