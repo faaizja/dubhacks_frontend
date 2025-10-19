@@ -1,258 +1,397 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { getSocket } from "../../../../utils/socket";
-import LobbyCard from "../../../../components/LobbyCard";
-import { Button } from "../../../../components/buttons/Button";
+import { useEffect, useState } from "react";
+import { io } from "socket.io-client";
 
-export default function Lobby() {
-  const router = useRouter();
-  const socket = getSocket();
+let socket;
 
-  const [isConnected, setIsConnected] = useState(socket.connected);
+export default function LobbyPage() {
+  const [isConnected, setIsConnected] = useState(false);
+  const [myName, setMyName] = useState("");
+  const [currentLobby, setCurrentLobby] = useState(null);
   const [lobbies, setLobbies] = useState([]);
-  const [currentLobbyId, setCurrentLobbyId] = useState(null);
+  const [logs, setLogs] = useState([]);
 
-  const userData = {
-    name: "Alex", // You can replace with dynamic input
-    avatar: "👦",
-    balance: 125.5,
-    parents: ["Mom", "Dad"],
-    stats: { choresCompleted: 47, gamesPlayed: 23, streak: 5 },
-  };
+  function updateLobbyList(lobby) {
+    setLobbies((prev) =>
+      prev.map((l) =>
+        l.id === lobby.id
+          ? { ...l, users: lobby.users, userCount: lobby.users.length }
+          : l
+      )
+    );
+  }
 
-  // ---------------- Socket Event Handlers ----------------
+  // Connect socket on mount
   useEffect(() => {
-    const onConnect = () => {
-      console.log("✅ Connected:", socket.id);
+    socket = io("http://norris-nondisguised-behavioristically.ngrok-free.dev", {
+      transports: ["websocket", "polling"],
+    });
+
+    socket.on("connect", () => {
+      log(`✅ Connected (${socket.id})`, "success");
       setIsConnected(true);
-      socket.emit("get_lobbies");
-    };
+      getLobbies();
+    });
 
-    const onDisconnect = () => {
-      console.log("❌ Disconnected");
+    socket.on("disconnect", () => {
+      log("⚠️ Disconnected", "error");
       setIsConnected(false);
-    };
+    });
 
-    const onLobbiesList = (list) => {
-      setLobbies(list);
-    };
+    socket.on("lobbies_list", (data) => {
+      log(`Received ${data.length} lobbies`, "info");
+      setLobbies(data);
+    });
 
-    const onLobbiesUpdated = (list) => {
-      setLobbies(list);
-    };
+    socket.on("lobbies_updated", (updatedLobbies) => {
+      log("Lobbies updated", "info");
+      setLobbies((prev) => {
+        return updatedLobbies.map((lobby) => {
+          // If this is your current lobby, use the live currentLobby data
+          if (currentLobby && lobby.id === currentLobby.id) {
+            return {
+              ...lobby,
+              users: currentLobby.users,
+              userCount: currentLobby.users.length,
+            };
+          }
+          return lobby;
+        });
+      });
+    });
 
-    const onUserJoined = (data) => {
-      setLobbies((prev) =>
-        prev.map((lobby) =>
-          lobby.id === data.lobbyId
-            ? { ...lobby, users: data.users, userCount: data.users.length }
-            : lobby
-        )
-      );
-      if (currentLobbyId === data.lobbyId) {
-        setCurrentLobbyId(data.lobbyId);
+    socket.on("lobby_created", (lobby) => {
+      log(`✅ Lobby created: ${lobby.id}`, "success");
+      setCurrentLobby(lobby);
+    });
+
+    socket.on("lobby_joined", (lobby) => {
+      log(`✅ Joined lobby: ${lobby.id}`, "success");
+      setCurrentLobby(lobby);
+    });
+
+    socket.on("user_joined", (data) => {
+      if (currentLobby && data.lobbyId === currentLobby.id) {
+        const newLobby = { id: data.lobbyId, users: data.users };
+        setCurrentLobby(newLobby);
+        updateLobbyList(newLobby);
       }
-    };
+    });
 
-    const onUserLeft = (data) => {
-      setLobbies((prev) =>
-        prev.map((lobby) =>
-          lobby.id === data.lobbyId
-            ? { ...lobby, users: data.users, userCount: data.users.length }
-            : lobby
-        )
-      );
-      if (currentLobbyId === data.lobbyId && data.users.length === 0) {
-        setCurrentLobbyId(null);
+    socket.on("user_left", (data) => {
+      if (currentLobby && data.lobbyId === currentLobby.id) {
+        const newLobby = { id: data.lobbyId, users: data.users };
+        setCurrentLobby(newLobby);
+        updateLobbyList(newLobby);
       }
-    };
+    });
 
-    const onLobbyCreated = (lobby) => {
-      setCurrentLobbyId(lobby.id);
-      router.push(`/app/child/game/${lobby.id}`);
-    };
-
-    const onLobbyJoined = (lobby) => {
-      setCurrentLobbyId(lobby.id);
-      router.push(`/app/child/game/${lobby.id}`);
-    };
-
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("lobbies_list", onLobbiesList);
-    socket.on("lobbies_updated", onLobbiesUpdated);
-    socket.on("user_joined", onUserJoined);
-    socket.on("user_left", onUserLeft);
-    socket.on("lobby_created", onLobbyCreated);
-    socket.on("lobby_joined", onLobbyJoined);
-
-    if (socket.connected) {
-      socket.emit("get_lobbies");
-    }
+    socket.on("error", (error) => {
+      log(`❌ Error: ${error.message}`, "error");
+      alert("Error: " + error.message);
+    });
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("lobbies_list", onLobbiesList);
-      socket.off("lobbies_updated", onLobbiesUpdated);
-      socket.off("user_joined", onUserJoined);
-      socket.off("user_left", onUserLeft);
-      socket.off("lobby_created", onLobbyCreated);
-      socket.off("lobby_joined", onLobbyJoined);
+      socket.disconnect();
     };
-  }, [socket, router, currentLobbyId]);
+  }, [currentLobby]);
 
-  // ---------------- Actions ----------------
-  const handleCreateLobby = () => {
-    if (!userData.name) return alert("Please set your name first!");
-    socket.emit("create_lobby", userData.name);
-  };
+  // Auto-refresh lobbies every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!currentLobby) getLobbies();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [currentLobby]);
 
-  const handleLobbyClick = (lobby) => {
-    if (lobby.userCount >= 4) return alert("This lobby is full!");
-    socket.emit("join_lobby", { lobbyId: lobby.id, userName: userData.name });
-  };
+  function log(message, type = "info") {
+    setLogs((prev) => [
+      { message, type, time: new Date().toLocaleTimeString() },
+      ...prev,
+    ]);
+  }
 
-  // ---------------- Render ----------------
+  function setNameHandler() {
+    if (!myName.trim()) {
+      alert("Please enter a name");
+      return;
+    }
+    log(`Name set to: ${myName}`, "success");
+  }
+
+  function createLobby() {
+    if (!myName.trim()) {
+      alert("Please set your name first!");
+      return;
+    }
+    log(`Creating lobby as ${myName}...`, "info");
+    socket.emit("create_lobby", myName);
+  }
+
+  function joinLobby(lobbyId) {
+    if (!myName.trim()) {
+      alert("Please set your name first!");
+      return;
+    }
+    log(`Joining lobby ${lobbyId} as ${myName}...`, "info");
+    socket.emit("join_lobby", { lobbyId, userName: myName });
+  }
+
+  function leaveLobby() {
+    if (currentLobby?.id) {
+      log(`Leaving lobby ${currentLobby.id}...`, "info");
+      socket.emit("leave_lobby", currentLobby.id);
+      setCurrentLobby(null);
+    }
+  }
+
+  function getLobbies() {
+    log("Fetching lobbies...", "info");
+    socket.emit("get_lobbies");
+  }
+
+  function clearLogs() {
+    setLogs([]);
+  }
+
   return (
-    <div className="flex h-screen w-screen">
-      {/* LEFT PANEL */}
-      <div className="w-1/4 bg-[#BDCCBA] h-full p-6 flex flex-col gap-6 overflow-y-auto">
-        {/* Profile Card */}
-        <div className="bg-white p-6 border-4 border-black flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-4xl border-4 border-black">
-            {userData.avatar}
-          </div>
-          <h2 className="text-2xl ITC-demi text-gray-800">{userData.name}</h2>
-        </div>
-
-        {/* Balance */}
-        <div className="bg-white p-6 border-4 border-black">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-600">
-              My Balance
-            </span>
-            <span className="text-2xl">💰</span>
-          </div>
-          <p className="text-3xl ITC-demi text-green-600">
-            ${userData.balance.toFixed(2)}
-          </p>
-        </div>
-
-        {/* Parents */}
-        <div className="bg-white p-6 border-4 border-black">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl">👨‍👩‍👦</span>
-            <h3 className="text-lg ITC-demi text-gray-800">My Parents</h3>
-          </div>
-          <div className="flex flex-col gap-2">
-            {userData.parents.map((parent, idx) => (
-              <div
-                key={idx}
-                className="bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700"
-              >
-                {parent}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="bg-white p-6 border-4 border-black">
-          <h3 className="text-lg ITC-demi text-gray-800 mb-4">My Stats</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">✅</span>
-                <span className="text-sm font-medium text-gray-600">
-                  Chores Done
-                </span>
-              </div>
-              <span className="text-xl ITC-demi text-gray-800">
-                {userData.stats.choresCompleted}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🎮</span>
-                <span className="text-sm font-medium text-gray-600">
-                  Games Played
-                </span>
-              </div>
-              <span className="text-xl ITC-demi text-gray-800">
-                {userData.stats.gamesPlayed}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🔥</span>
-                <span className="text-sm font-medium text-gray-600">
-                  Day Streak
-                </span>
-              </div>
-              <span className="text-xl ITC-demi text-orange-500">
-                {userData.stats.streak}
-              </span>
-            </div>
-          </div>
-        </div>
+    <div className="container">
+      <h1>🎮 Lobby System Test</h1>
+      <div id="status" className={isConnected ? "connected" : "disconnected"}>
+        {isConnected ? `✅ Connected (${socket?.id})` : "⚠️ Disconnected"}
       </div>
 
-      {/* RIGHT PANEL */}
-      <div className="w-3/4 relative h-full p-4 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            onClick={() => router.push("/app/child/main")}
-            variant="green"
-          >
-            Back
-          </Button>
+      {/* Your Info */}
+      <div className="section">
+        <h2>Your Info</h2>
+        <input
+          type="text"
+          placeholder="Enter your name"
+          value={myName}
+          onChange={(e) => setMyName(e.target.value)}
+        />
+        <button onClick={setNameHandler}>Set Name</button>
+        {myName && (
+          <p style={{ marginTop: "10px", color: "#3498db" }}>
+            ✅ Name set to: {myName}
+          </p>
+        )}
+      </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-3 h-3 rounded-full ${
-                  isConnected ? "bg-green-500" : "bg-red-500"
-                }`}
-              ></div>
-              <span className="text-sm font-medium">
-                {isConnected ? "Connected" : "Disconnected"}
-              </span>
-            </div>
-            <Button onClick={handleCreateLobby} variant="primary">
-              + Create Lobby
-            </Button>
-          </div>
-        </div>
+      {/* Create Lobby */}
+      <div className="section">
+        <h2>Create Lobby</h2>
+        <button onClick={createLobby}>🎮 Create New Lobby</button>
+      </div>
 
-        {/* Lobby List */}
-        <div className="flex flex-wrap gap-6 overflow-y-auto">
-          {lobbies.length === 0 ? (
-            <div className="w-full text-center py-12">
-              <p className="text-xl text-gray-500 ITC-medium">
-                No lobbies available. Create one to get started! 🎮
+      {/* Current Lobby */}
+      <div className="section">
+        <h2>Current Lobby</h2>
+        <div id="currentLobby" style={{ minHeight: "50px" }}>
+          {currentLobby ? (
+            <div
+              style={{ background: "#0f3460", padding: 15, borderRadius: 8 }}
+            >
+              <h3 style={{ marginTop: 0 }}>🎮 Lobby {currentLobby.id}</h3>
+              <p style={{ color: "#3498db", fontSize: 18, fontWeight: "bold" }}>
+                👥 {currentLobby.users.length}/4 Players
               </p>
+              <div style={{ marginTop: 15 }}>
+                {currentLobby.users.map((user, index) => (
+                  <div className="user" key={user.id}>
+                    {index === 0 ? "👑 " : ""}
+                    {user.name} {user.id === socket?.id ? "(YOU)" : ""}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
-            lobbies.map((lobby) => (
-              <LobbyCard
-                key={lobby.id}
-                lobby={{
-                  id: lobby.id,
-                  status: lobby.userCount >= 4 ? "full" : "open",
-                  players: lobby.userCount,
-                  maxPlayers: 4,
-                  users: lobby.users || [],
-                }}
-                onClick={() => handleLobbyClick(lobby)}
-              />
-            ))
+            <p style={{ color: "#888" }}>Not in a lobby</p>
+          )}
+        </div>
+        {currentLobby && (
+          <button onClick={leaveLobby} id="leaveBtn">
+            ❌ Leave Lobby
+          </button>
+        )}
+      </div>
+
+      {/* Available Lobbies */}
+      <div className="section">
+        <h2>Available Lobbies</h2>
+        <button onClick={getLobbies} style={{ marginBottom: 15 }}>
+          🔄 Refresh Lobbies
+        </button>
+        <div id="lobbiesList">
+          {lobbies.length === 0 ? (
+            <p style={{ color: "#888" }}>No lobbies available. Create one!</p>
+          ) : (
+            lobbies.map((lobby) => {
+              const isFull = lobby.userCount >= 4;
+              const isInLobby = currentLobby?.id === lobby.id;
+              return (
+                <div
+                  className={`lobby ${isFull ? "full" : ""}`}
+                  key={lobby.id}
+                  style={{
+                    background: "#0f3460",
+                    padding: 15,
+                    margin: "10px 0",
+                    borderRadius: 5,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    opacity: isFull ? 0.6 : 1,
+                  }}
+                >
+                  <div>
+                    <strong>🎮 Lobby {lobby.id}</strong>
+                    {isFull && <span className="badge">FULL</span>}
+                    {isInLobby && (
+                      <span className="badge" style={{ background: "#2ecc71" }}>
+                        YOU'RE HERE
+                      </span>
+                    )}
+                    <br />
+                    <small style={{ color: "#aaa" }}>
+                      👥 {lobby.userCount}/4 players
+                    </small>
+                    {lobby.users?.length > 0 && (
+                      <>
+                        <br />
+                        <small style={{ color: "#888" }}>
+                          Players: {lobby.users.map((u) => u.name).join(", ")}
+                        </small>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => joinLobby(lobby.id)}
+                    disabled={isFull || isInLobby}
+                  >
+                    {isInLobby ? "✅ Joined" : isFull ? "🔒 Full" : "➡️ Join"}
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* Logs */}
+      <div className="section">
+        <h2>📋 Console Logs</h2>
+        <button
+          onClick={clearLogs}
+          style={{ marginBottom: 10, background: "#555" }}
+        >
+          Clear Logs
+        </button>
+        <div
+          id="logs"
+          style={{
+            maxHeight: 300,
+            overflowY: "auto",
+            fontFamily: "monospace",
+            fontSize: 12,
+          }}
+        >
+          {logs.map((logItem, index) => (
+            <div
+              key={index}
+              className={`log ${logItem.type}`}
+              style={{ color: logColor(logItem.type), margin: "5px 0" }}
+            >
+              [{logItem.time}] {logItem.message}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <style jsx>{`
+        body {
+          font-family: Arial, sans-serif;
+          max-width: 900px;
+          margin: 50px auto;
+          padding: 20px;
+          background: #1a1a2e;
+          color: #eee;
+        }
+        .section {
+          background: #16213e;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border: 1px solid #0f3460;
+        }
+        input,
+        button {
+          padding: 12px;
+          margin: 5px;
+          border-radius: 5px;
+          border: 1px solid #0f3460;
+          background: #0f3460;
+          color: #eee;
+          font-size: 14px;
+        }
+        button {
+          cursor: pointer;
+          background: #e94560;
+        }
+        button:hover {
+          background: #c23854;
+        }
+        button:disabled {
+          background: #555;
+          cursor: not-allowed;
+        }
+        .user {
+          background: #16213e;
+          padding: 8px 12px;
+          margin: 5px;
+          border-radius: 5px;
+          display: inline-block;
+        }
+        .connected {
+          background: #2ecc71;
+          color: #000;
+          padding: 10px;
+          border-radius: 5px;
+          margin: 10px 0;
+          font-weight: bold;
+        }
+        .disconnected {
+          background: #e74c3c;
+          color: #fff;
+          padding: 10px;
+          border-radius: 5px;
+          margin: 10px 0;
+          font-weight: bold;
+        }
+        .badge {
+          background: #f39c12;
+          color: #000;
+          padding: 2px 8px;
+          border-radius: 3px;
+          font-size: 11px;
+          font-weight: bold;
+          margin-left: 10px;
+        }
+      `}</style>
     </div>
   );
+
+  function logColor(type) {
+    switch (type) {
+      case "success":
+        return "#2ecc71";
+      case "error":
+        return "#e74c3c";
+      case "info":
+        return "#3498db";
+      default:
+        return "#eee";
+    }
+  }
 }
