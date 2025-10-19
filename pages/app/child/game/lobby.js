@@ -28,7 +28,7 @@ export default function Lobby() {
   const handleLobbyClick = (lobby) => {
     if (lobby.status === "open") {
       console.log(`Joining lobby #${lobby.id}`);
-      router.push(`/app/child/game/${lobby.id}`);
+      router.push(`/app/child/game/play/${lobby.id}`);
     }
   };
   return (
